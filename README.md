@@ -245,4 +245,6 @@ docker exec -e EASY_PROXY_DISPOSABLE_TEST=1 easy-proxy-test bash /workspace/scri
 docker rm -f easy-proxy-test
 ```
 
+Windows 交互用户会话可运行 `scripts/test-windows-client.ps1 -Binary PATH_TO_EXE`，验证计划任务安装、启停、ACL 和卸载；发现已有本项目任务时会拒绝测试。`scripts/test-live.ps1 -Binary PATH_TO_EXE` 使用临时本机服务检查真实公网连接，结果取决于当前网络，不属于 CI 必须通过的检查。
+
 CI 在 Linux / Windows 运行测试，在 Debian / Ubuntu systemd 容器验证安装、重复安装、升级失败恢复、升级、回滚、续证、轮换及卸载。推送 `vX.Y.Z` 标签会在测试通过后自动构建并发布三平台包、校验文件及客户端脚本。不会自动部署服务器。
