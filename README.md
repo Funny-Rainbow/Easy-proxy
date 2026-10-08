@@ -49,7 +49,9 @@ scp root@YOUR_SERVER_IP:/root/client.json ./client.json
 
 `client.json` 含密码和 CA 公钥，不含 CA 私钥。请通过可信 SSH 等通道传输，不要提交到 Git。CA 私钥保存在服务器 `/etc/easy-proxy/ca-key.pem`，只有 root 可读。
 
-需要为部署机器添加 SSH 登录授权时，在已经可信的服务器会话内运行 `sudo bash scripts/prepare-ssh.sh --public-key 'ssh-ed25519 ...'`。脚本保留已有授权，只添加传入公钥，生成缺失的 SSH 主机密钥并输出指纹；不会重置主机密钥、修改 SSH 设置或重启 SSH。将指纹通过可信会话核实后，再从部署机器连接。
+希望从本地完成首次 SSH 授权时，在本地 Linux / WSL 用普通用户运行 `bash scripts/connect-server.sh YOUR_SERVER_IP [SSH_PORT]`。按 SSH 提示确认服务器指纹、完成首次登录后，脚本自动在远端添加专用公钥并验证免密连接，保存 `~/.ssh/easy-proxy-server.conf`。之后可用 `ssh -F ~/.ssh/easy-proxy-server.conf easy-proxy-server` 调试和部署；本地脚本不需要 sudo，首次远端登录使用 root。
+
+如果已经通过可信会话登录服务器，也可在服务器运行 `sudo bash scripts/prepare-ssh.sh --public-key 'ssh-ed25519 ...'`。该方式保留已有授权，只添加传入公钥，生成缺失的 SSH 主机密钥并输出指纹；不会重置主机密钥、修改 SSH 设置或重启 SSH。
 
 ## 2. Linux / WSL 客户端
 
