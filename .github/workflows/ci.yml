@@ -1,0 +1,77 @@
+name: Test and release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+      - run: go test -race ./...
+      - run: go vet ./...
+      - if: runner.os == 'Linux'
+        run: bash scripts/test-shell.sh
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: ./scripts/test-env.ps1
+  systemd:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: ['python:3.11-slim-bookworm', 'ubuntu:24.04']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+      - name: Build test binary
+        run: |
+          mkdir -p dist /tmp/easy-proxy-test-build
+          CGO_ENABLED=0 go build -ldflags '-X main.version=v0.1.0' -o /tmp/easy-proxy-test-build/easy-proxy ./cmd/easy-proxy
+          tar -czf dist/easy-proxy_v0.1.0_linux_amd64.tar.gz -C /tmp/easy-proxy-test-build easy-proxy
+      - name: Build test machine
+        env:
+          BASE_IMAGE: ${{ matrix.image }}
+        run: docker build --build-arg BASE_IMAGE="$BASE_IMAGE" -f scripts/Dockerfile.systemd-test -t easy-proxy-systemd-test .
+      - name: Test lifecycle
+        run: |
+          docker run -d --name easy-proxy-systemd --privileged --cgroupns=private --tmpfs /run --tmpfs /tmp -v "$PWD:/workspace:ro" easy-proxy-systemd-test
+          for i in $(seq 1 30); do
+            if docker exec easy-proxy-systemd systemctl is-system-running | grep -Eq 'running|degraded'; then break; fi
+            sleep 1
+          done
+          docker exec -e EASY_PROXY_DISPOSABLE_TEST=1 easy-proxy-systemd bash /workspace/scripts/test-systemd.sh
+      - if: always()
+        run: |
+          docker logs easy-proxy-systemd || true
+          docker rm -f easy-proxy-systemd || true
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, systemd]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+      - name: Build
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: bash scripts/build.sh "$RELEASE_VERSION"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_VERSION" dist/* scripts/client-env.sh scripts/client-env.ps1 scripts/docker-proxy.sh --verify-tag --generate-notes --title "Easy-proxy $RELEASE_VERSION"

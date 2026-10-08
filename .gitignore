@@ -1,0 +1,10 @@
+/dist/
+/.local/
+*.exe
+*.test
+*.pem
+*.key
+*.crt
+server.json
+client.json
+*.log
