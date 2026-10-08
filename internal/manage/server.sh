@@ -173,7 +173,9 @@ upgrade)
   [[ $release =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]] || die 'Use --version vX.Y.Z'
   case $(uname -m) in x86_64) arch=amd64;; aarch64|arm64) arch=arm64;; *) die 'Unsupported server architecture.';; esac
   archive="easy-proxy_${release}_linux_${arch}.tar.gz"
-  work=$(mktemp -d)
+  # /tmp is commonly mounted noexec. Use the installation filesystem where
+  # release executables are intended to run, rather than executing in /tmp.
+  work=$(mktemp -d "$base/.upgrade.XXXXXX")
   if [[ -n $from ]]; then
     cp -- "$from/$archive" "$from/SHA256SUMS" "$work/"
   else

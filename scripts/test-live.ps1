@@ -26,8 +26,8 @@ try {
     if ($LASTEXITCODE) { $Failures += 'Probe failed' }
     $Proxy = "http://127.0.0.1:$ClientPort"
     foreach ($Target in @('https://github.com','https://huggingface.co/bert-base-uncased/resolve/main/config.json','https://pypi.org/simple/requests/')) {
-        & curl.exe --silent --show-error --fail --location --max-time 60 --proxy $Proxy --output NUL --write-out "PASS $Target %{http_code}`n" $Target
-        if ($LASTEXITCODE) { $Failures += "Download failed: $Target" }
+        $Code = & curl.exe --silent --show-error --fail --location --max-time 60 --proxy $Proxy --output NUL --write-out '%{http_code}' $Target
+        if ($LASTEXITCODE) { $Failures += "Download failed: $Target" } else { Write-Output "PASS $Target $Code" }
     }
     & git.exe -c "http.proxy=$Proxy" clone --depth 1 https://github.com/octocat/Hello-World.git (Join-Path $Work 'clone')
     if ($LASTEXITCODE) { throw 'Git clone failed' }
