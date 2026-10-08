@@ -23,8 +23,11 @@ if [[ ! -f $key_path ]]; then
   ssh-keygen -q -t ed25519 -f "$key_path" -N '' -C easy-proxy-deploy
 fi
 chmod 0600 "$key_path"
-# Derive the public key from the actual private key; no stale .pub dependency.
-public_key="$(ssh-keygen -y -f "$key_path") easy-proxy-deploy"
+# Some OpenSSH versions include the saved comment in -y output. Extract only
+# the key type and blob before adding our stable deployment comment.
+derived_key=$(ssh-keygen -y -f "$key_path")
+read -r key_type key_blob key_comment <<< "$derived_key"
+public_key="$key_type $key_blob easy-proxy-deploy"
 [[ $public_key =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+\ easy-proxy-deploy$ ]] || { echo 'Invalid deployment public key.' >&2; exit 1; }
 
 echo "Local computer: $(hostname)"
