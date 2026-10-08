@@ -49,6 +49,8 @@ scp root@YOUR_SERVER_IP:/root/client.json ./client.json
 
 `client.json` 含密码和 CA 公钥，不含 CA 私钥。请通过可信 SSH 等通道传输，不要提交到 Git。CA 私钥保存在服务器 `/etc/easy-proxy/ca-key.pem`，只有 root 可读。
 
+需要为部署机器添加 SSH 登录授权时，在已经可信的服务器会话内运行 `sudo bash scripts/prepare-ssh.sh --public-key 'ssh-ed25519 ...'`。脚本保留已有授权，只添加传入公钥，生成缺失的 SSH 主机密钥并输出指纹；不会重置主机密钥、修改 SSH 设置或重启 SSH。将指纹通过可信会话核实后，再从部署机器连接。
+
 ## 2. Linux / WSL 客户端
 
 下载并解压对应 Linux 发布包，保存 `client.json`。先在一个终端启动前台桥接：
